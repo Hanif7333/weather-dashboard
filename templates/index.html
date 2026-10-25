@@ -51,8 +51,8 @@
             </div>
         </div>
 
-        <!-- Secondary Sensor Cards Grid & Model Performance (MAE) -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <!-- Secondary Sensor Cards Grid, MAE & Accuracy (5 Columns) -->
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
             <div class="bg-slate-800 p-5 rounded-2xl shadow-lg border border-slate-700">
                 <p class="text-slate-400 text-xs font-medium uppercase tracking-wider">💨 Wind Speed</p>
                 <p id="wind_speed" class="text-xl font-bold text-blue-400 mt-2">- km/h</p>
@@ -68,6 +68,10 @@
             <div class="bg-slate-800 p-5 rounded-2xl shadow-lg border border-slate-700">
                 <p class="text-slate-400 text-xs font-medium uppercase tracking-wider">🎯 Model Error (MAE)</p>
                 <p id="mae" class="text-xl font-bold text-rose-400 mt-2">- °C</p>
+            </div>
+            <div class="bg-slate-800 p-5 rounded-2xl shadow-lg border border-slate-700">
+                <p class="text-slate-400 text-xs font-medium uppercase tracking-wider">🏆 Model Accuracy</p>
+                <p id="accuracy" class="text-xl font-bold text-emerald-400 mt-2">- %</p>
             </div>
         </div>
 
@@ -129,11 +133,12 @@
                     document.getElementById('pred_temp').innerText = data.predicted_temp + ' °C';
                     document.getElementById('actual_temp').innerText = data.actual_temp + ' °C';
 
-                    // Update Sensor Parameters & MAE Cards
+                    // Update Sensor Parameters, MAE & Accuracy Cards
                     document.getElementById('wind_speed').innerText = data.wind_speed + ' km/h';
                     document.getElementById('humidity').innerText = data.humidity + ' %';
                     document.getElementById('pressure').innerText = data.pressure + ' hPa';
                     document.getElementById('mae').innerText = data.mae + ' °C';
+                    document.getElementById('accuracy').innerText = data.accuracy + ' %';
 
                     // Update Live Graph
                     let timeLabel = data.time.split(' ')[1];

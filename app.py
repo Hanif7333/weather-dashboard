@@ -76,6 +76,15 @@ async def get_next_prediction():
     
     current_mae = round(float(np.mean(error_history)), 3)
     
+    # Calculate Accuracy % based on MAE and actual temperature value (Bounded between 0% and 100%)
+    current_temp = float(row[target_col])
+    if current_temp > 0:
+        # Formula: 100 - (MAE / Current Temperature * 100)
+        raw_accuracy = 100.0 - (current_mae / abs(current_temp) * 100.0)
+        current_accuracy = round(max(0.0, min(100.0, raw_accuracy)), 2)
+    else:
+        current_accuracy = 0.0
+    
     # Continuous Online Training (partial_fit with new incoming row)
     X_feed = next_row[feature_cols].values.reshape(1, -1)
     y_feed = np.array([actual_val])
@@ -90,7 +99,8 @@ async def get_next_prediction():
         "wind_speed": round(float(row['Wind Speed (km/h)']), 2),
         "humidity": round(float(row['Humidity (%)']), 2),
         "pressure": round(float(row['Pressure (hPa)']), 2),
-        "mae": current_mae
+        "mae": current_mae,
+        "accuracy": current_accuracy
     }
     
     current_index += 1
