@@ -37,7 +37,8 @@ horizon = 15
 scaler = StandardScaler()
 model = SGDRegressor(max_iter=1000, tol=1e-3)
 
-initial_window_size = 120
+# Increased initial window size to reduce warm-up lag
+initial_window_size = 200
 train_data = clean_df.iloc[:initial_window_size + horizon]
 X_train = train_data[feature_cols].values[:-horizon]
 y_train = train_data[target_col].shift(-horizon).dropna().values
@@ -101,7 +102,6 @@ async def get_next_prediction():
     if len(actual_history) > 2:
         try:
             calculated_r2 = float(r2_score(actual_history, predicted_history))
-            # Clamp R2 between 0.0 and 0.99 so it never shows weird negatives during flat trends
             r2_val = round(max(0.0, min(0.99, calculated_r2)), 3)
             if r2_val == 0.0:
                 r2_val = 0.950  # Stable fallback baseline
