@@ -29,15 +29,17 @@ target_col = 'Ambient Temperature (°C)'
 clean_df = df[['TIMESTAMP'] + feature_cols].dropna()
 clean_df = clean_df[clean_df[target_col] > 0.0].reset_index(drop=True)
 
+# Prediction Horizon (15 minutes ahead)
+horizon = 15
+
 # Model & Scaler setup
 scaler = StandardScaler()
 model = SGDRegressor(max_iter=1000, tol=1e-3)
 
 initial_window_size = 120
-train_data = clean_df.iloc[:initial_window_size]
-X_train = train_data[feature_cols].values
-y_train = train_data[target_col].shift(-1).dropna().values
-X_train = X_train[:-1]
+train_data = clean_df.iloc[:initial_window_size + horizon]
+X_train = train_data[feature_cols].values[:-horizon]
+y_train = train_data[target_col].shift(-horizon).dropna().values
 
 X_train_scaled = scaler.fit_transform(X_train)
 model.partial_fit(X_train_scaled, y_train)
@@ -54,19 +56,20 @@ async def home(request: Request):
 async def get_next_prediction():
     global current_index, error_history
     
-    if current_index >= len(clean_df) - 1:
+    # Boundary check for 15-min ahead prediction
+    if current_index + horizon >= len(clean_df):
         current_index = initial_window_size  # Reset if loop ends
         error_history = []
         
     row = clean_df.iloc[current_index]
-    next_row = clean_df.iloc[current_index + 1]
+    future_row = clean_df.iloc[current_index + horizon]
     
-    # Predict next minute temperature
+    # Predict temperature 15 minutes ahead
     X_new = row[feature_cols].values.reshape(1, -1)
     X_new_scaled = scaler.transform(X_new)
     prediction = float(model.predict(X_new_scaled)[0])
     
-    actual_val = float(next_row[target_col])
+    actual_val = float(future_row[target_col])
     
     # Calculate absolute error for this step and store in history (keep last 20)
     step_error = abs(prediction - actual_val)
@@ -76,17 +79,16 @@ async def get_next_prediction():
     
     current_mae = round(float(np.mean(error_history)), 3)
     
-    # Calculate Accuracy % based on MAE and actual temperature value (Bounded between 0% and 100%)
+    # Calculate Accuracy % based on MAE and actual temperature value
     current_temp = float(row[target_col])
     if current_temp > 0:
-        # Formula: 100 - (MAE / Current Temperature * 100)
         raw_accuracy = 100.0 - (current_mae / abs(current_temp) * 100.0)
         current_accuracy = round(max(0.0, min(100.0, raw_accuracy)), 2)
     else:
         current_accuracy = 0.0
     
-    # Continuous Online Training (partial_fit with new incoming row)
-    X_feed = next_row[feature_cols].values.reshape(1, -1)
+    # Continuous Online Training (partial_fit with the 15th-min future row data)
+    X_feed = future_row[feature_cols].values.reshape(1, -1)
     y_feed = np.array([actual_val])
     X_feed_scaled = scaler.partial_fit(X_feed).transform(X_feed)
     model.partial_fit(X_feed_scaled, y_feed)
