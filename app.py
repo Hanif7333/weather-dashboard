@@ -29,11 +29,10 @@ feature_cols = [
     'Pressure (hPa)'
 ]
 
-# Safe clean: drop rows with missing values only, skip strict zero filtering to prevent index crashes
 clean_df = df[['TIMESTAMP'] + feature_cols].dropna().reset_index(drop=True)
 
 horizon = 15
-initial_window_size = 8115  # Start right where the real non-zero data begins in your excel log!
+initial_window_size = 8115  # Start right where the real non-zero data begins
 
 models = {}
 scalers_X = {}
@@ -63,7 +62,7 @@ predicted_history = []
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(request, "index.html", {})
 
 @app.get("/get_next_prediction")
 async def get_next_prediction(target_param: str = Query(default='Ambient Temperature (°C)')):
