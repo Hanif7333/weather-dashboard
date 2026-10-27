@@ -25,8 +25,14 @@ feature_cols = [
     'Pressure (hPa)'
 ]
 
-# Clean data
-clean_df = df[['TIMESTAMP'] + feature_cols].dropna().reset_index(drop=True)
+# Clean data: Remove NaNs AND filter out 0.0 startup dummy rows
+clean_df = df[['TIMESTAMP'] + feature_cols].dropna()
+clean_df = clean_df[
+    (clean_df['Ambient Temperature (°C)'] > 0.0) & 
+    (clean_df['Pressure (hPa)'] > 0.0)
+].reset_index(drop=True)
+
+print(f"Total valid non-zero rows loaded: {len(clean_df)}")
 
 # Prediction Horizon for 15-minute interval
 horizon = 15
@@ -42,7 +48,7 @@ for col in feature_cols:
     scalers_X[col] = StandardScaler()
     scalers_y[col] = StandardScaler()
     
-    # Warm-up fitting for each target to remove initial cold-start temperature deviation
+    # Warm-up fitting for each target to remove initial cold-start deviation
     train_data = clean_df.iloc[:initial_window_size + horizon]
     X_tr = train_data[feature_cols].values[:-horizon]
     y_tr = train_data[col].shift(-horizon).dropna().values.reshape(-1, 1)
@@ -59,7 +65,7 @@ predicted_history = []
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-    return templates.TemplateResponse(request, "index.html", {})
+    return templates.TemplateResponse("index.html", {"request": request})
 
 @app.get("/get_next_prediction")
 async def get_next_prediction(target_param: str = Query(default='Ambient Temperature (°C)')):
@@ -88,7 +94,7 @@ async def get_next_prediction(target_param: str = Query(default='Ambient Tempera
     X_new_scaled = scaler_x.transform(X_new)
     pred_scaled = model.predict(X_new_scaled)
     
-    # Inverse transform to get actual scale prediction (fixes the 20°C deviation scale error)
+    # Inverse transform to get actual scale prediction
     prediction = float(scaler_y.inverse_transform(pred_scaled.reshape(-1, 1))[0][0])
     actual_val = float(future_row[target_param])
     
