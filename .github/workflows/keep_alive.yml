@@ -1,0 +1,15 @@
+name: Render Keep Alive 24/7
+
+on:
+  schedule:
+    # Ovvoru 5 minutes-ukum automated-a run aagum
+    - cron: '*/5 * * * *'
+  workflow_dispatch: # GitHub web page-la manual-a run panni paarkka
+
+jobs:
+  ping-server:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Render Server
+        run: |
+          curl -s https://weather-dashboard-6wze.onrender.com/
