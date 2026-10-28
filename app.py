@@ -21,11 +21,18 @@ except Exception as e:
 df['TIMESTAMP'] = pd.to_datetime(df['TIMESTAMP'])
 df = df.sort_values('TIMESTAMP').reset_index(drop=True)
 
+# Updated feature columns including all weather + electrical parameters
 feature_cols = [
     'Wind Speed (km/h)', 
     'Ambient Temperature (°C)', 
     'Humidity (%)', 
-    'Pressure (hPa)'
+    'Pressure (hPa)',
+    'Active Energy Import (kWh)',
+    'R Phase Voltage (V)',
+    'R Phase Current (A)',
+    'Average Current (A)',
+    'Power Factor',
+    'Total Active Power (kW)'
 ]
 
 clean_df = df[['TIMESTAMP'] + feature_cols].dropna().reset_index(drop=True)
@@ -91,8 +98,8 @@ async def get_next_prediction(target_param: str = Query(default='Ambient Tempera
         pred_scaled = model.predict(X_new_scaled)
         prediction = float(scaler_y.inverse_transform(pred_scaled.reshape(-1, 1))[0][0])
         
-        # Prevent wild scaling explosions
-        if abs(prediction) > 1000 or np.isnan(prediction) or np.isinf(prediction):
+        # Prevent wild scaling explosions & bounds protection
+        if abs(prediction) > 1e6 or np.isnan(prediction) or np.isinf(prediction):
             prediction = actual_val + np.random.uniform(-0.2, 0.2)
     except Exception:
         prediction = actual_val
@@ -150,7 +157,8 @@ async def get_next_prediction(target_param: str = Query(default='Ambient Tempera
         "wind_speed": round(float(row['Wind Speed (km/h)']), 2),
         "humidity": round(float(row['Humidity (%)']), 2),
         "pressure": round(float(row['Pressure (hPa)']), 2),
-        "ambient_temp": round(float(row['Ambient Temperature (°C)']), 2),
+        "voltage": round(float(row['R Phase Voltage (V)']), 2),
+        "power": round(float(row['Total Active Power (kW)']), 2),
         "mae": current_mae,
         "accuracy": current_accuracy,
         "r2": r2_val,
